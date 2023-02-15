@@ -1,5 +1,5 @@
 ################################################################################Les Variables##############################################################################
-def variable():  #es que ca marche
+def variable():
     #qualite de vie
     global keyType
     keyType = "francais" # peux etre "english" ou "francais" pour les claviers different
@@ -93,7 +93,6 @@ def mondeVuActualise():#remet a jour le mondeVu(lors d'un mouvement seulement) ,
     global mondeVuCouleur,monde,biomeCouleur
     global seed
     noiseSeed(seed)
-    randomSeed(seed)
     noiseScale = 0.01
     noiseDetail(4,0.57)
     for y in range(mondeSizeY):
@@ -122,17 +121,6 @@ def mondeVuActualise():#remet a jour le mondeVu(lors d'un mouvement seulement) ,
                 #modification
                 mondeVu[coor[1]-mondeVuDecallage["y"]][coor[0]-mondeVuDecallage["x"]] = monde[coor]
 
-    #creation des ressource
-    ressources = {}  #contient toutes les ressources
-    for y in range(mondeSizeY):
-        for x in range(mondeSizeX):
-            if mondeVu[y][x] == "herbeFonce":
-                print(mondeVuDecallage["y"]-y,mondeVuDecallage["x"]-x)
-                a = int(random(mondeVuDecallage["y"]-y,mondeVuDecallage["x"]-x))
-                print(a)
-                if a <= 350:
-                    ressources[mondeVuDecallage["x"] + x,mondeVuDecallage["y"] + y] = "noir"
-    injectBloc(ressources)
     
     #on calcule a l'avance les couleurs
     for y in range(mondeSizeY):
