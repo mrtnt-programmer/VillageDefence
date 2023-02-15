@@ -1,5 +1,5 @@
 ################################################################################Les Variables##############################################################################
-def variable():
+def variable():  #es que ca marche
     #qualite de vie
     global keyType
     keyType = "francais" # peux etre "english" ou "francais" pour les claviers different
