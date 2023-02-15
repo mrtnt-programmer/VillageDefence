@@ -93,6 +93,7 @@ def mondeVuActualise():#remet a jour le mondeVu(lors d'un mouvement seulement) ,
     global mondeVuCouleur,monde,biomeCouleur
     global seed
     noiseSeed(seed)
+    randomSeed(seed)
     noiseScale = 0.01
     noiseDetail(4,0.57)
     for y in range(mondeSizeY):
