@@ -38,11 +38,15 @@ def variable():  #es que ca marche
     global heroX,heroY
     heroX = width/2
     heroY = height/2
-    global heroUp,heroDown,heroLeft,heroRight
+    global heroUp,heroDown,heroLeft,heroRight, blockUp, blockDown, blockLeft, blockRight
     heroUp = False
     heroDown = False
     heroLeft = False
     heroRight = False
+    blockUp = False
+    blockDown = False
+    blockLeft = False
+    blockRight = False
     global heroMouvementKeys
     if keyType == "english":
         heroMouvementKeys = {"haut":"z","bas":"s","gauche":"q","droit":"d","zoomIn":"+","zoomOut":"-"}
@@ -178,12 +182,25 @@ def heroMouvement():
         mondeVuDecallage["x"] += 1
         mondeVuActualise()
         
+def collision():
+    global mondeSizeX, mondeSizeY, heroX, heroY, mondeVu, blockUp, blockDown, blockLeft, blockRight
+    for y in range(mondeSizeY):
+        for x in range(mondeSizeX):
+            if mondeVu[y][x] == "eau":
+                if y + (width/zoom)*y <= heroY:
+                    print( y + (width/zoom)*y,heroY)
+                    blockUp = True
+            else:
+                blockUp = False
+    #(width/zoom)*x,(width/zoom)*y,width/zoom,width/zoom
+        
 def keyPressed():
     #detection du clavier pour le systeme de mouvement pour le personage
     global heroUp,heroDown,heroLeft,heroRight
-    global heroMouvementKeys
+    global heroMouvementKeys, blockUp, blockDown, blockLeft, blockRight
     if(keyCode == heroMouvementKeys["haut"] or key == heroMouvementKeys["haut"] ):
-        heroUp = True
+        if blockUp == False:
+            heroUp = True
     if(keyCode == heroMouvementKeys["bas"] or key == heroMouvementKeys["bas"] ):
         heroDown = True
     if(keyCode == heroMouvementKeys["gauche"] or key == heroMouvementKeys["gauche"] ):
