@@ -126,13 +126,10 @@ def mondeVuActualise():#remet a jour le mondeVu(lors d'un mouvement seulement) ,
     for y in range(mondeSizeY):
         for x in range(mondeSizeX):
             if mondeVu[y][x] == "herbeFonce":
-                print("seed",int(noise((x+mondeVuDecallage["x"]) * noiseScale,(y+mondeVuDecallage["y"]))*100000000))#un noise c'eest 12 apres la virgule et on le transform en nombre entier
-                randomSeed(int(noise((x+mondeVuDecallage["x"]) * noiseScale,(y+mondeVuDecallage["y"]))*100000000))
+                randomSeed(int(noise((x+mondeVuDecallage["x"]) * noiseScale,(y+mondeVuDecallage["y"]))*100000000))#un noise c'est 12 apres la virgule et on le transform en nombre entier
                 a = (random((x+mondeVuDecallage["x"]) * noiseScale,(y+mondeVuDecallage["y"])))
-                print("a",a)
-                if a <= 350:
-                    ressources[mondeVuDecallage["x"] + x,mondeVuDecallage["y"] + y] = "noir"
-                    MondeVu[y][x] = "noir"
+                if a > 200:#il semble que ca varie entre 0 et 300
+                    mondeVu[y][x] = "noir"
     
     #on calcule a l'avance les couleurs
     for y in range(mondeSizeY):
