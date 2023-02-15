@@ -30,7 +30,8 @@ def variable():  #es que ca marche
         "montagne":[160,158,156],
         "hautMontagne":[242,242,242],
         "villageTuile":[255,0,0],
-        "villageMur":[200,50,50]
+        "villageMur":[200,50,50],
+        "noir":[0,0,0]
     }
     
     #le hero
@@ -93,7 +94,6 @@ def mondeVuActualise():#remet a jour le mondeVu(lors d'un mouvement seulement) ,
     global mondeVuCouleur,monde,biomeCouleur
     global seed
     noiseSeed(seed)
-    randomSeed(seed)
     noiseScale = 0.01
     noiseDetail(4,0.57)
     for y in range(mondeSizeY):
@@ -123,16 +123,16 @@ def mondeVuActualise():#remet a jour le mondeVu(lors d'un mouvement seulement) ,
                 mondeVu[coor[1]-mondeVuDecallage["y"]][coor[0]-mondeVuDecallage["x"]] = monde[coor]
 
     #creation des ressource
-    ressources = {}  #contient toutes les ressources
     for y in range(mondeSizeY):
         for x in range(mondeSizeX):
             if mondeVu[y][x] == "herbeFonce":
-                print(mondeVuDecallage["y"]-y,mondeVuDecallage["x"]-x)
-                a = int(random(mondeVuDecallage["y"]-y,mondeVuDecallage["x"]-x))
-                print(a)
+                print("seed",int(noise((x+mondeVuDecallage["x"]) * noiseScale,(y+mondeVuDecallage["y"]))*100000000))#un noise c'eest 12 apres la virgule et on le transform en nombre entier
+                randomSeed(int(noise((x+mondeVuDecallage["x"]) * noiseScale,(y+mondeVuDecallage["y"]))*100000000))
+                a = (random((x+mondeVuDecallage["x"]) * noiseScale,(y+mondeVuDecallage["y"])))
+                print("a",a)
                 if a <= 350:
                     ressources[mondeVuDecallage["x"] + x,mondeVuDecallage["y"] + y] = "noir"
-    injectBloc(ressources)
+                    MondeVu[y][x] = "noir"
     
     #on calcule a l'avance les couleurs
     for y in range(mondeSizeY):
