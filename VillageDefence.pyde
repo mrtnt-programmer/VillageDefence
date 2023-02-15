@@ -35,18 +35,15 @@ def variable():  #es que ca marche
     }
     
     #le hero
-    global heroX,heroY
-    heroX = width/2
-    heroY = height/2
-    global heroUp,heroDown,heroLeft,heroRight, blockUp, blockDown, blockLeft, blockRight
+    global heroX,heroY,heroSize
+    heroX = (width/zoom)*mondeSizeX/2
+    heroY = (width/zoom)*((mondeSizeY-1)/2)
+    heroSize = width/zoom
+    global heroUp,heroDown,heroLeft,heroRight
     heroUp = False
     heroDown = False
     heroLeft = False
     heroRight = False
-    blockUp = False
-    blockDown = False
-    blockLeft = False
-    blockRight = False
     global heroMouvementKeys
     if keyType == "english":
         heroMouvementKeys = {"haut":"z","bas":"s","gauche":"q","droit":"d","zoomIn":"+","zoomOut":"-"}
@@ -63,17 +60,14 @@ def setup():
     text("loading",width/2,height/2)
     noStroke()
     mondeInitialiser()
-
     mondeVuActualise()
         
 def draw():
-    print(frameRate)
-    global heroX,heroY
-    #mondeVuActualise() #on a seulement besoin d'actualiser si on bouge
+    global heroX,heroY,heroSize
     drawMonde()
-    heroMouvement()
-    fill(0)
-    circle(heroX,heroY,20)
+    heroMouvement()#mouvement et actualisation du mond et collision
+    fill(0,255,255)
+    rect(heroX,heroY,heroSize,heroSize)
         
 #####################################################################################Le Monde######################################################################################
     
@@ -118,7 +112,7 @@ def mondeVuActualise():#remet a jour le mondeVu(lors d'un mouvement seulement) ,
             else :#mondeVu[y][x] < 0.9
                 mondeVu[y][x] = "hautMontagne"
                 
-    #modification avec ce q'il a dans "monde"
+    #modification avec les bloc en memoire dans "monde"
     for coor in monde.keys():#pour chaque modification
         #on verifie d'abord si il est a etre afficher sur l'ecran
         if coor[0] <= mondeVuDecallage["x"]+mondeSizeX and coor[0] >= mondeVuDecallage["x"]:
@@ -131,8 +125,8 @@ def mondeVuActualise():#remet a jour le mondeVu(lors d'un mouvement seulement) ,
         for x in range(mondeSizeX):
             if mondeVu[y][x] == "herbeFonce":
                 randomSeed(int(noise((x+mondeVuDecallage["x"]) * noiseScale,(y+mondeVuDecallage["y"]))*100000000))#un noise c'est 12 apres la virgule et on le transform en nombre entier
-                a = (random((x+mondeVuDecallage["x"]) * noiseScale,(y+mondeVuDecallage["y"])))
-                if a > 200:#il semble que ca varie entre 0 et 300
+                a = random(0,100)
+                if a <= 10:#le pourcentage de case qui von contenir la resource
                     mondeVu[y][x] = "noir"
     
     #on calcule a l'avance les couleurs
@@ -169,38 +163,46 @@ def injectBloc(blocs):#recoit une dictionnaire de forme x,y:"biome" et l'integre
 def heroMouvement():
     global heroUp,heroDown,heroLeft,heroRight
     global mondeVuDecallage
+    heroBouge(1)
+    #verification que le mouvement n'est pas en collision avec un murs
+    if collisionMurs():
+        heroBouge(-1)
+        #il a une collision, donc defait le mouvement
+        
+def heroBouge(distance):#bouge le personnage
+    global heroUp,heroDown,heroLeft,heroRight
+    global mondeVuDecallage
     if(heroUp == True):
-        mondeVuDecallage["y"] -= 1
+        mondeVuDecallage["y"] -= distance
         mondeVuActualise()
     if(heroDown == True):
-        mondeVuDecallage["y"] += 1
+        mondeVuDecallage["y"] += distance
         mondeVuActualise()
     if(heroLeft == True):
-        mondeVuDecallage["x"] -= 1
+        mondeVuDecallage["x"] -= distance
         mondeVuActualise()
     if(heroRight == True):
-        mondeVuDecallage["x"] += 1
+        mondeVuDecallage["x"] += distance
         mondeVuActualise()
         
-def collision():
-    global mondeSizeX, mondeSizeY, heroX, heroY, mondeVu, blockUp, blockDown, blockLeft, blockRight
+        
+def collisionMurs():#return True is on est sur un block pas traversable(utile en cours de mouvement pour savoir si elle est possible)
+    global mondeSizeX, mondeSizeY, heroX, heroY, heroSize, mondeVu
     for y in range(mondeSizeY):
         for x in range(mondeSizeX):
             if mondeVu[y][x] == "eau":
-                if y + (width/zoom)*y <= heroY:
-                    print( y + (width/zoom)*y,heroY)
-                    blockUp = True
-            else:
-                blockUp = False
-    #(width/zoom)*x,(width/zoom)*y,width/zoom,width/zoom
+                #on test si les carre ne se superpose pas(le plus rapid)
+                if (heroX >= (x+1)*(width/zoom) or heroX+heroSize <= x*(width/zoom) or heroY >= (y+1)*(width/zoom) or heroY+heroSize <= y*(width/zoom)) == False :#test des 4 situation de non superposition
+                    print("collison",x,y)
+                    return True
+    return False
         
 def keyPressed():
     #detection du clavier pour le systeme de mouvement pour le personage
     global heroUp,heroDown,heroLeft,heroRight
-    global heroMouvementKeys, blockUp, blockDown, blockLeft, blockRight
+    global heroMouvementKeys
     if(keyCode == heroMouvementKeys["haut"] or key == heroMouvementKeys["haut"] ):
-        if blockUp == False:
-            heroUp = True
+        heroUp = True
     if(keyCode == heroMouvementKeys["bas"] or key == heroMouvementKeys["bas"] ):
         heroDown = True
     if(keyCode == heroMouvementKeys["gauche"] or key == heroMouvementKeys["gauche"] ):
