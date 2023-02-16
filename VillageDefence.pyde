@@ -11,13 +11,14 @@ def variable():
     noiseSeed(seed)
     noiseDetail(4,0.57)
     print("seed : ",seed)
-    global zoom#le nombre de block affiche en largeur
-    zoom = 75
+    global zoom,mondeMargin
+    zoom = 75#le nombre de block affiche en largeur
+    mondeMargin = 4#le nombre de bloc hors ecrant que l'on ajout pour facilite les calculs
     global monde#contient les modifications du monde (par example pour ce souvenir de l'emplacement du village/donjon)
     monde = {}#contient un dictionnaire du type (x,y):biome, avec x et y des nombre(et non des string de text!)
     global mondeSizeX, mondeSizeY#contient le nombre de carre affichee sur l'ecrant
-    mondeSizeX = zoom+1# +1 pour que si on arondit vers le bas tout l'ecrant sera quand meme recouvert
-    mondeSizeY = (height/(width/zoom))+1#calcule pour avoir une nombre de carre proportionelle a l'ecrant(toujour avec +1)
+    mondeSizeX = zoom+1+mondeMargin*2# +1 pour que si on arondit vers le bas tout l'ecrant sera quand meme recouvert
+    mondeSizeY = (height/(width/zoom))+1+mondeMargin*2#calcule pour avoir une nombre de carre proportionelle a l'ecrant(toujour avec +1)
     global mondeVu#MondeVu contient seulement les cases vu
     global mondeVuCouleur#pour un affichage rapide on calcule avant et on stock les couleur ici
     global mondeVuDecallage #mondeVuDecallage se souvient a quelle distance on est des coordonnee d'origine
@@ -70,7 +71,7 @@ def setup():
     mondeVuActualise()
         
 def draw():
-    print(frameRate)
+    #print(frameRate)
     global heroX,heroY,heroSize
     drawMonde()
     heroMouvement()#mouvement et actualisation du mond et collision
@@ -82,14 +83,14 @@ def draw():
 def drawMonde():
     global mondeVu,mondeVuCouleur
     global biomeCouleur
-    global zoom
+    global zoom,mondeMargin
     global mondeSizeX, mondeSizeY
     #coloriage du carre selon sont type dans le monde
-    for y in range(mondeSizeY):#on affiche les pixels que le hero voit
-        for x in range(mondeSizeX): 
+    for y in range(mondeMargin,mondeSizeY-mondeMargin):#on affiche les pixels que le hero voit
+        for x in range(mondeMargin,mondeSizeX-mondeMargin): 
             #dessine le carre
             fill(mondeVuCouleur[y][x][0],mondeVuCouleur[y][x][1],mondeVuCouleur[y][x][2])
-            rect((width/zoom)*x,(width/zoom)*y,width/zoom,width/zoom)
+            rect((width/zoom)*(x-mondeMargin),(width/zoom)*(y-mondeMargin),width/zoom,width/zoom)
 
 def mondeVuActualise():#remet a jour le mondeVu(lors d'un mouvement seulement) , cette fonction trouve les carres a afficher et les stocke dans la list mondeVu,ainsi que precalculer les couleur
     global mondeVu,mondeVuDecallage
@@ -111,21 +112,27 @@ def mondeVuActualise():#remet a jour le mondeVu(lors d'un mouvement seulement) ,
             if coor[1] <= mondeVuDecallage["y"]+mondeSizeY and coor[1] >= mondeVuDecallage["y"]:
                 #modification
                 mondeVu[coor[1]-mondeVuDecallage["y"]][coor[0]-mondeVuDecallage["x"]] = monde[coor]
-
+    ##########################################################################################################################################################################
+    ##########################################################################################################################################################################
+    ##########################################################################################################################################################################
+    ########################################################################a travailler#######################################################################
+    ##########################################################################################################################################################################
+    ##########################################################################################################################################################################
     #creation des ressource
     for y in range(mondeSizeY):
         for x in range(mondeSizeX):
             randomSeed(int(noise((x+mondeVuDecallage["x"]) * noiseScale,(y+mondeVuDecallage["y"]))*100000000))#un noise c'est 12 apres la virgule et on le transform en nombre entier
             a = random(0,100)
             if mondeVu[y][x] == "herbeFonce":
-                if TrouveRandomPourcentage(x+mondeVuDecallage["x"],y+mondeVuDecallage["y"],2):#le pourcentage de case qui vont contenir la resource
+                if TrouveRandomPourcentage(x+mondeVuDecallage["x"],y+mondeVuDecallage["y"],4):#le pourcentage de case qui vont contenir la resource
+                    #mondeVu[y][x] = "noir"
                     #un arbre est contenue dans un rectangle 3*4, et ne doivent pas ce superposer,le bloc principale(ou bloc createur) est en coordonne 1,3
-                    #il faudrai verifier pour les arbre mais pour l'instant on place tout les arbre
                     placeLibre = True
-                    for arbreY in range(4):
-                        for arbreX in range(3):
-                            if TrouveBiome(arbreX+x+mondeVuDecallage["x"],arbreY+y+mondeVuDecallage["y"]) != "herbeFonce":#verifie si la position est toujour
-                                placeLibre = False
+                    #on test si il a un morceaux d'arbre dans le terran d'affichage
+                    coorList = [(-1+i,-3+ii) for i in range(3) for ii in range(4)]# tout les coordonne de l'arbre a tester i pour x et ii pour y
+                    for coor in coorList:
+                        if (mondeVu[y+coor[1]][x+coor[0]] == "tronc" or mondeVu[y+coor[1]][x+coor[0]] == "feuille"):
+                            placeLibre = False
                     if placeLibre:
                         mondeVu[y][x] = "tronc"
                         mondeVu[y-1][x] = "tronc" 
@@ -133,29 +140,23 @@ def mondeVuActualise():#remet a jour le mondeVu(lors d'un mouvement seulement) ,
                         mondeVu[y-3][x] = "feuille"
                         mondeVu[y-3][x-1] = "feuille"
                         mondeVu[y-2][x-1] = "feuille"
-                        mondeVu[y-2][x+1] = "feuille"                                
-                    
-                    """mondeVu[y][x] = "noir"
-                    #verifie que rien ne sera en contact avec l'arbre pour que se soit plus beau
-                    if mondeVu[y-1][x] == "herbeFonce" and mondeVu[y-2][x] == "herbeFonce" and mondeVu[y][x-1] == "herbeFonce" and mondeVu[y-1][x-1] == "herbeFonce" and mondeVu[y-2][x-1] == "herbeFonce" and mondeVu[y-3][x-1] == "herbeFonce" and mondeVu[y-2][x-2] == "herbeFonce" and mondeVu[y-3][x-2] == "herbeFonce" and mondeVu[y-3][x] == "herbeFonce" and mondeVu[y-3][x+1] == "herbeFonce" and mondeVu[y-2][x+2] == "herbeFonce" and mondeVu[y-4][x] == "herbeFonce" and mondeVu[y-4][x-1] == "herbeFonce":
-                        #mondeVu[y][x] = "tronc"
-                        mondeVu[y-1][x] = "tronc" 
-                        mondeVu[y-2][x] = "feuille"
-                        mondeVu[y-3][x] = "feuille"
-                        mondeVu[y-3][x-1] = "feuille"
-                        mondeVu[y-2][x-1] = "feuille"
-                        mondeVu[y-2][x+1] = "feuille"
-                        """
+                        mondeVu[y-2][x+1] = "feuille"    
             if mondeVu[y][x] == "terre":
-                if a <= 2:
-                    #verifie que rien ne soit en contact avec les pierres
-                    if mondeVu[y-1][x] == "terre" and mondeVu[y-1][x+1] == "terre" and mondeVu[y-1][x-1] == "terre" and mondeVu[y-1][x-2] == "terre" and mondeVu[y][x-1] == "terre" and mondeVu[y][x-2] == "terre" and mondeVu[y][x+1] == "terre" and mondeVu[y-2][x] == "terre" and mondeVu[y-2][x+1] == "terre" and mondeVu[y-2][x-1] == "terre" and mondeVu[y-2][x-2] == "terre" and mondeVu[y-3][x] == "terre" and mondeVu[y-3][x+1] == "terre" and mondeVu[y-3][x-1] == "terre":
+                if TrouveRandomPourcentage(x+mondeVuDecallage["x"],y+mondeVuDecallage["y"],2):
+                    placeLibre = True
+                    coorList = [(-1+i,-1+ii) for i in range(3) for ii in range(2)]
+                    for coor in coorList:
+                        if (mondeVu[y+coor[1]][x+coor[0]] == "rock" or mondeVu[y+coor[1]][x+coor[0]] != "terre" ):#!= a terre donc obligatoirement seulement sur la terre
+                            placeLibre = False
+                    if placeLibre:
                         mondeVu[y][x] = "rock"
                         mondeVu[y-1][x] = "rock"
                         mondeVu[y-2][x] = "rock"
                         mondeVu[y][x+1] = "rock"
                         mondeVu[y][x-1] = "rock"
                         mondeVu[y-1][x-1] = "rock"
+##########################################################################################################################################################################
+
     
     #on calcule a l'avance les couleurs
     for y in range(mondeSizeY):
@@ -255,7 +256,6 @@ def collisionMurs():#return True is on est sur un block pas traversable(utile en
             if mondeVu[y][x] == "eau":
                 #on test si les carre ne se superpose pas(le plus rapid)
                 if (heroX >= (x+1)*(width/zoom) or heroX+heroSize <= x*(width/zoom) or heroY >= (y+1)*(width/zoom) or heroY+heroSize <= y*(width/zoom)) == False :#test des 4 situation de non superposition
-                    print("collison",x,y)
                     return True
     return False
         
