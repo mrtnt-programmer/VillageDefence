@@ -1,12 +1,15 @@
 ################################################################################Les Variables##############################################################################
-def variable():  #es que ca marche
+def variable():
     #qualite de vie
     global keyType
     keyType = "francais" # peux etre "english" ou "francais" pour les claviers different
     
     #le monde
-    global seed#on utilise ce nombre pour avoir un hasard sous control(c'est a dire ,meme seed = meme resultat noise), utiliser pour noise() et random()
+    global seed,noiseScale#on utilise ce nombre pour avoir un hasard sous control(c'est a dire ,meme seed = meme resultat noise), utiliser pour noise() et random()
     seed = int(random(0,1000000))
+    noiseScale = 0.01
+    noiseSeed(seed)
+    noiseDetail(4,0.57)
     print("seed : ",seed)
     global zoom#le nombre de block affiche en largeur
     zoom = 75
@@ -56,6 +59,7 @@ def variable():  #es que ca marche
 ##################################################################################La boucle principale#############################################################################
 
 def setup():
+    frameRate(40)
     fullScreen()
     variable()
     background(0,0,0)
@@ -66,6 +70,7 @@ def setup():
     mondeVuActualise()
         
 def draw():
+    print(frameRate)
     global heroX,heroY,heroSize
     drawMonde()
     heroMouvement()#mouvement et actualisation du mond et collision
@@ -93,27 +98,11 @@ def mondeVuActualise():#remet a jour le mondeVu(lors d'un mouvement seulement) ,
     global mondeSizeX, mondeSizeY
     global mondeVuDecallage
     global mondeVuCouleur,monde,biomeCouleur
-    global seed
-    noiseSeed(seed)
-    noiseScale = 0.01
-    noiseDetail(4,0.57)
+    global seed,noiseScale
+
     for y in range(mondeSizeY):
         for x in range(mondeSizeX):
-            #a partire d'un seed on construit un tableau de valeur entre 1 et 0 avec la fonctrion noise()
-            mondeVu[y][x] = noise((x+mondeVuDecallage["x"]) * noiseScale,(y+mondeVuDecallage["y"]) * noiseScale)
-            #conversion du tableau de valeur en nom de dessin(du type 'montagne' ou 'lac')
-            if mondeVu[y][x] < 0.35:
-                mondeVu[y][x] = "eau"
-            elif mondeVu[y][x] < 0.45:
-                mondeVu[y][x] = "herbeClair"
-            elif mondeVu[y][x] < 0.6:
-                mondeVu[y][x] = "herbeFonce"
-            elif mondeVu[y][x] < 0.7:
-                mondeVu[y][x] = "terre"
-            elif mondeVu[y][x] < 0.8:
-                mondeVu[y][x] = "montagne"
-            else :#mondeVu[y][x] < 0.9
-                mondeVu[y][x] = "hautMontagne"
+            mondeVu[y][x] = TrouveBiome(x+mondeVuDecallage["x"],y+mondeVuDecallage["y"])#le probleme avec cette ligne c'est quelle lag trop
                 
     #modification avec les bloc en memoire dans "monde"
     for coor in monde.keys():#pour chaque modification
@@ -126,22 +115,38 @@ def mondeVuActualise():#remet a jour le mondeVu(lors d'un mouvement seulement) ,
     #creation des ressource
     for y in range(mondeSizeY):
         for x in range(mondeSizeX):
+            randomSeed(int(noise((x+mondeVuDecallage["x"]) * noiseScale,(y+mondeVuDecallage["y"]))*100000000))#un noise c'est 12 apres la virgule et on le transform en nombre entier
+            a = random(0,100)
             if mondeVu[y][x] == "herbeFonce":
-                randomSeed(int(noise((x+mondeVuDecallage["x"]) * noiseScale,(y+mondeVuDecallage["y"]))*100000000))#un noise c'est 12 apres la virgule et on le transform en nombre entier
-                a = random(0,100)
-                if a <= 10:#le pourcentage de case qui von contenir la resource
-                    #verifie que rien ne sera en contact avec l'arbre pour que se soit plus beau
-                    if mondeVu[y-1][x] == "herbeFonce" and mondeVu[y-2][x] == "herbeFonce" and mondeVu[y][x-1] == "herbeFonce" and mondeVu[y-1][x-1] == "herbeFonce" and mondeVu[y-2][x-1] == "herbeFonce" and mondeVu[y-3][x-1] == "herbeFonce" and mondeVu[y-2][x-2] == "herbeFonce" and mondeVu[y-3][x-2] == "herbeFonce" and mondeVu[y-3][x] == "herbeFonce" and mondeVu[y-3][x+1] == "herbeFonce" and mondeVu[y-2][x+2] == "herbeFonce" and mondeVu[y-4][x] == "herbeFonce" and mondeVu[y-4][x-1] == "herbeFonce":
+                if TrouveRandomPourcentage(x+mondeVuDecallage["x"],y+mondeVuDecallage["y"],2):#le pourcentage de case qui vont contenir la resource
+                    #un arbre est contenue dans un rectangle 3*4, et ne doivent pas ce superposer,le bloc principale(ou bloc createur) est en coordonne 1,3
+                    #il faudrai verifier pour les arbre mais pour l'instant on place tout les arbre
+                    placeLibre = True
+                    for arbreY in range(4):
+                        for arbreX in range(3):
+                            if TrouveBiome(arbreX+x+mondeVuDecallage["x"],arbreY+y+mondeVuDecallage["y"]) != "herbeFonce":#verifie si la position est toujour
+                                placeLibre = False
+                    if placeLibre:
                         mondeVu[y][x] = "tronc"
                         mondeVu[y-1][x] = "tronc" 
                         mondeVu[y-2][x] = "feuille"
                         mondeVu[y-3][x] = "feuille"
                         mondeVu[y-3][x-1] = "feuille"
                         mondeVu[y-2][x-1] = "feuille"
+                        mondeVu[y-2][x+1] = "feuille"                                
+                    
+                    """mondeVu[y][x] = "noir"
+                    #verifie que rien ne sera en contact avec l'arbre pour que se soit plus beau
+                    if mondeVu[y-1][x] == "herbeFonce" and mondeVu[y-2][x] == "herbeFonce" and mondeVu[y][x-1] == "herbeFonce" and mondeVu[y-1][x-1] == "herbeFonce" and mondeVu[y-2][x-1] == "herbeFonce" and mondeVu[y-3][x-1] == "herbeFonce" and mondeVu[y-2][x-2] == "herbeFonce" and mondeVu[y-3][x-2] == "herbeFonce" and mondeVu[y-3][x] == "herbeFonce" and mondeVu[y-3][x+1] == "herbeFonce" and mondeVu[y-2][x+2] == "herbeFonce" and mondeVu[y-4][x] == "herbeFonce" and mondeVu[y-4][x-1] == "herbeFonce":
+                        #mondeVu[y][x] = "tronc"
+                        mondeVu[y-1][x] = "tronc" 
+                        mondeVu[y-2][x] = "feuille"
+                        mondeVu[y-3][x] = "feuille"
+                        mondeVu[y-3][x-1] = "feuille"
+                        mondeVu[y-2][x-1] = "feuille"
                         mondeVu[y-2][x+1] = "feuille"
+                        """
             if mondeVu[y][x] == "terre":
-                randomSeed(int(noise((x+mondeVuDecallage["x"]) * noiseScale,(y+mondeVuDecallage["y"]))*100000000))#un noise c'est 12 apres la virgule et on le transform en nombre entier
-                a = random(0,100)
                 if a <= 2:
                     #verifie que rien ne soit en contact avec les pierres
                     if mondeVu[y-1][x] == "terre" and mondeVu[y-1][x+1] == "terre" and mondeVu[y-1][x-1] == "terre" and mondeVu[y-1][x-2] == "terre" and mondeVu[y][x-1] == "terre" and mondeVu[y][x-2] == "terre" and mondeVu[y][x+1] == "terre" and mondeVu[y-2][x] == "terre" and mondeVu[y-2][x+1] == "terre" and mondeVu[y-2][x-1] == "terre" and mondeVu[y-2][x-2] == "terre" and mondeVu[y-3][x] == "terre" and mondeVu[y-3][x+1] == "terre" and mondeVu[y-3][x-1] == "terre":
@@ -159,6 +164,37 @@ def mondeVuActualise():#remet a jour le mondeVu(lors d'un mouvement seulement) ,
             for biome in biomeCouleur.keys():
                 if mondeVu[y][x] == biome:
                     mondeVuCouleur[y][x] = biomeCouleur[biome]
+                    
+def TrouveBiome(X,Y):#a partir de coordonne x,y on peux donne le biome du bloc
+    global noiseScale
+    #on trouve la valeur entre 1 et 0 avec la fonction noise(), cette valeur est la meme si le seed et les coordonnes sont les meme
+    blocNoise = noise(X * noiseScale,Y * noiseScale)
+    blocBiome = "noir"#pour debug
+    #on convertie la valeur en nom de dessin(du type 'montagne' ou 'lac')
+    if blocNoise < 0.35:
+        blocBiome = "eau"
+    elif blocNoise < 0.45:
+        blocBiome = "herbeClair"
+    elif blocNoise < 0.6:
+        blocBiome = "herbeFonce"
+    elif blocNoise < 0.7:
+        blocBiome = "terre"
+    elif blocNoise < 0.8:
+        blocBiome = "montagne"
+    else :#mondeVu[y][x] < 0.9
+        blocBiome = "hautMontagne";
+    return blocBiome
+
+def TrouveRandomPourcentage(X,Y,Pourcentage):#a partir de coordonne x,y et d'un pourcentage, retourn True ou False , utile pour le placement des ressources
+    global noiseScale
+    #noiseDetail(4,0.57)
+    #on trouve la valeur entre 1 et 0 avec la fonction noise(), cette valeur est la meme si le seed et les coordonnes sont les meme
+    blocNoise = noise(X * noiseScale,Y * noiseScale)
+    randomSeed(int(blocNoise*10000000))#un noise semble avoir 12 nombre apres la virgule donc il faut le transformer en nombre entier(un seed doit etre entier)
+    a = random(0,100)
+    if a < Pourcentage:#test du pourcentage
+        return True
+    return False
 
 def mondeInitialiser():#creation des construction et on mette leur bloc dans "monde", une seul foit aux debut
     makeVillage(mondeVuDecallage["x"]-10,mondeVuDecallage["y"]-10,mondeVuDecallage["x"]+10,mondeVuDecallage["y"]+10)
@@ -195,19 +231,22 @@ def heroMouvement():
 def heroBouge(distance):#bouge le personnage
     global heroUp,heroDown,heroLeft,heroRight
     global mondeVuDecallage
+    actualise = False
     if(heroUp == True):
         mondeVuDecallage["y"] -= distance
-        mondeVuActualise()
+        actualise = True
     if(heroDown == True):
         mondeVuDecallage["y"] += distance
-        mondeVuActualise()
+        actualise = True
     if(heroLeft == True):
         mondeVuDecallage["x"] -= distance
-        mondeVuActualise()
+        actualise = True
     if(heroRight == True):
         mondeVuDecallage["x"] += distance
-        mondeVuActualise()
+        actualise = True
         
+    if actualise:#de cette facon on actualise q'une foit par frame
+        mondeVuActualise()
         
 def collisionMurs():#return True is on est sur un block pas traversable(utile en cours de mouvement pour savoir si elle est possible)
     global mondeSizeX, mondeSizeY, heroX, heroY, heroSize, mondeVu
