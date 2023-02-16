@@ -31,7 +31,10 @@ def variable():  #es que ca marche
         "hautMontagne":[242,242,242],
         "villageTuile":[255,0,0],
         "villageMur":[200,50,50],
-        "noir":[0,0,0]
+        "noir":[0,0,0],
+        "tronc":[54,37,4],
+        "feuille":[17,82,30],
+        "rock":[126,131,127]
     }
     
     #le hero
@@ -127,7 +130,27 @@ def mondeVuActualise():#remet a jour le mondeVu(lors d'un mouvement seulement) ,
                 randomSeed(int(noise((x+mondeVuDecallage["x"]) * noiseScale,(y+mondeVuDecallage["y"]))*100000000))#un noise c'est 12 apres la virgule et on le transform en nombre entier
                 a = random(0,100)
                 if a <= 10:#le pourcentage de case qui von contenir la resource
-                    mondeVu[y][x] = "noir"
+                    #verifie que rien ne sera en contact avec l'arbre pour que se soit plus beau
+                    if mondeVu[y-1][x] == "herbeFonce" and mondeVu[y-2][x] == "herbeFonce" and mondeVu[y][x-1] == "herbeFonce" and mondeVu[y-1][x-1] == "herbeFonce" and mondeVu[y-2][x-1] == "herbeFonce" and mondeVu[y-3][x-1] == "herbeFonce" and mondeVu[y-2][x-2] == "herbeFonce" and mondeVu[y-3][x-2] == "herbeFonce" and mondeVu[y-3][x] == "herbeFonce" and mondeVu[y-3][x+1] == "herbeFonce" and mondeVu[y-2][x+2] == "herbeFonce" and mondeVu[y-4][x] == "herbeFonce" and mondeVu[y-4][x-1] == "herbeFonce":
+                        mondeVu[y][x] = "tronc"
+                        mondeVu[y-1][x] = "tronc" 
+                        mondeVu[y-2][x] = "feuille"
+                        mondeVu[y-3][x] = "feuille"
+                        mondeVu[y-3][x-1] = "feuille"
+                        mondeVu[y-2][x-1] = "feuille"
+                        mondeVu[y-2][x+1] = "feuille"
+            if mondeVu[y][x] == "terre":
+                randomSeed(int(noise((x+mondeVuDecallage["x"]) * noiseScale,(y+mondeVuDecallage["y"]))*100000000))#un noise c'est 12 apres la virgule et on le transform en nombre entier
+                a = random(0,100)
+                if a <= 2:
+                    #verifie que rien ne soit en contact avec les pierres
+                    if mondeVu[y-1][x] == "terre" and mondeVu[y-1][x+1] == "terre" and mondeVu[y-1][x-1] == "terre" and mondeVu[y-1][x-2] == "terre" and mondeVu[y][x-1] == "terre" and mondeVu[y][x-2] == "terre" and mondeVu[y][x+1] == "terre" and mondeVu[y-2][x] == "terre" and mondeVu[y-2][x+1] == "terre" and mondeVu[y-2][x-1] == "terre" and mondeVu[y-2][x-2] == "terre" and mondeVu[y-3][x] == "terre" and mondeVu[y-3][x+1] == "terre" and mondeVu[y-3][x-1] == "terre":
+                        mondeVu[y][x] = "rock"
+                        mondeVu[y-1][x] = "rock"
+                        mondeVu[y-2][x] = "rock"
+                        mondeVu[y][x+1] = "rock"
+                        mondeVu[y][x-1] = "rock"
+                        mondeVu[y-1][x-1] = "rock"
     
     #on calcule a l'avance les couleurs
     for y in range(mondeSizeY):
