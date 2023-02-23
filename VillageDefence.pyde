@@ -162,13 +162,11 @@ def mondeVuActualise():#remet a jour le mondeVu(lors d'un mouvement seulement) ,
                     if a <= 5:
                         if a <= 5/3:
                             if detectionRessources("rock",1,x,y) == True:
-                                print("1")
                                 mondeVu[y][x] = "roche"
                                 mondeVu[y+1][x] = "roche"
                                 mondeVu[y+1][x+1] = "roche"
                         elif a <= (5/3)*2:
                             if detectionRessources("rock",2,x,y) == True:
-                                print("2")
                                 mondeVu[y][+1] = "roche"
                                 mondeVu[y+1][x] = "roche"
                                 mondeVu[y+1][x+1] = "roche"
@@ -177,7 +175,6 @@ def mondeVuActualise():#remet a jour le mondeVu(lors d'un mouvement seulement) ,
                                 mondeVu[y+2][x+2] = "roche"
                         else:
                             if detectionRessources("rock",3,x,y) == True:
-                                print("3")
                                 mondeVu[y][x+2] = "roche"
                                 mondeVu[y+1][x+1] = "roche"
                                 mondeVu[y+1][x+2] = "roche"
