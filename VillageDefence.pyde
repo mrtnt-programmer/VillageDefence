@@ -27,18 +27,18 @@ def variable():
     mondeVuDecallage = {"x":1000,"y":200}#decalage du point haut gauche, on mette des valeur grand car en ce point le monde est symetrique, ce qui casse l'immersion(aucune difference de rapidite selon la grandeur de ces valeurs)
     global biomeCouleur
     biomeCouleur = {
-        "eau":[41,162,240],
-        "herbeClair":[89,173,54],
-        "herbeFonce":[13,98,2],
-        "terre":[100,66,10],
-        "montagne":[160,158,156],
-        "hautMontagne":[242,242,242],
+        "eau":[35,72,98],
+        "herbeClair":[74,106,94],
+        "herbeFonce":[49,82,64],
+        "terre":[123,106,96],
+        "montagne":[160,160,160],
+        "hautMontagne":[255,255,255],
         "villageTuile":[255,0,0],
         "villageMur":[200,50,50],
         "noir":[0,0,0],
-        "tronc":[54,37,4],
-        "feuille":[17,82,30],
-        "rock":[126,131,127]
+        "tronc":[70,51,47],
+        "feuille":[44,76,60],
+        "roche":[126,131,127]
     }
     
     #le hero
@@ -121,40 +121,75 @@ def mondeVuActualise():#remet a jour le mondeVu(lors d'un mouvement seulement) ,
     #creation des ressource
     for y in range(mondeSizeY):
         for x in range(mondeSizeX):
-            randomSeed(int(noise((x+mondeVuDecallage["x"]) * noiseScale,(y+mondeVuDecallage["y"]))*100000000))#un noise c'est 12 apres la virgule et on le transform en nombre entier
-            a = random(0,100)
-            if mondeVu[y][x] == "herbeFonce":
-                if TrouveRandomPourcentage(x+mondeVuDecallage["x"],y+mondeVuDecallage["y"],4):#le pourcentage de case qui vont contenir la resource
-                    #mondeVu[y][x] = "noir"
-                    #un arbre est contenue dans un rectangle 3*4, et ne doivent pas ce superposer,le bloc principale(ou bloc createur) est en coordonne 1,3
-                    placeLibre = True
-                    #on test si il a un morceaux d'arbre dans le terran d'affichage
-                    coorList = [(-1+i,-3+ii) for i in range(3) for ii in range(4)]# tout les coordonne de l'arbre a tester i pour x et ii pour y
-                    for coor in coorList:
-                        if (mondeVu[y+coor[1]][x+coor[0]] == "tronc" or mondeVu[y+coor[1]][x+coor[0]] == "feuille"):
-                            placeLibre = False
-                    if placeLibre:
-                        mondeVu[y][x] = "tronc"
-                        mondeVu[y-1][x] = "tronc" 
-                        mondeVu[y-2][x] = "feuille"
-                        mondeVu[y-3][x] = "feuille"
-                        mondeVu[y-3][x-1] = "feuille"
-                        mondeVu[y-2][x-1] = "feuille"
-                        mondeVu[y-2][x+1] = "feuille"    
-            if mondeVu[y][x] == "terre":
-                if TrouveRandomPourcentage(x+mondeVuDecallage["x"],y+mondeVuDecallage["y"],2):
-                    placeLibre = True
-                    coorList = [(-1+i,-1+ii) for i in range(3) for ii in range(2)]
-                    for coor in coorList:
-                        if (mondeVu[y+coor[1]][x+coor[0]] == "rock" or mondeVu[y+coor[1]][x+coor[0]] != "terre" ):#!= a terre donc obligatoirement seulement sur la terre
-                            placeLibre = False
-                    if placeLibre:
-                        mondeVu[y][x] = "rock"
-                        mondeVu[y-1][x] = "rock"
-                        mondeVu[y-2][x] = "rock"
-                        mondeVu[y][x+1] = "rock"
-                        mondeVu[y][x-1] = "rock"
-                        mondeVu[y-1][x-1] = "rock"
+            if x + 6 <= len(mondeVu[0]) and y + 6 <= len(mondeVu) and x - 1 >= 0 and y - 1 >= 0:  #si on ne depasse pas mondeVu
+                if mondeVu[y][x] == "herbeFonce":
+                    randomSeed(int(noise((x+mondeVuDecallage["x"]) * noiseScale,(y+mondeVuDecallage["y"]))*100000000))#un noise c'est 12 apres la virgule et on le transform en nombre entier
+                    a = random(0,100)
+                    if a <= 10:#le pourcentage de case qui von contenir la resource
+                        if a <= 10/3:
+                            if detectionRessources("tree",1,x,y) == True:  #il y a maitenant 3 types d'arbre
+                                mondeVu[y][x] = "feuille"
+                                mondeVu[y+1][x] = "feuille"
+                        elif a <= (10/3)*2:
+                            if detectionRessources("tree",2,x,y) == True:  #detecte avec le def
+                                mondeVu[y][x] = "feuille"
+                                mondeVu[y][x+1] = "feuille"
+                                mondeVu[y+1][x] = "feuille"
+                                mondeVu[y+1][x+1] = "feuille"
+                                mondeVu[y+1][x+2] = "feuille"
+                                mondeVu[y+2][x+1] = "tronc"
+                                mondeVu[y+3][x+1] = "tronc"
+                        else:
+                            if detectionRessources("tree",3,x,y) == True:
+                                #creation de la ressource
+                                mondeVu[y][x+1] = "feuille"
+                                mondeVu[y][x+2] = "feuille"
+                                mondeVu[y+1][x] = "feuille"
+                                mondeVu[y+1][x+1] = "feuille"
+                                mondeVu[y+1][x+2] = "feuille"
+                                mondeVu[y+1][x+3] = "feuille"
+                                mondeVu[y+2][x] = "feuille"
+                                mondeVu[y+2][x+1] = "feuille"
+                                mondeVu[y+2][x+2] = "feuille"
+                                mondeVu[y+2][x+3] = "feuille"
+                                mondeVu[y+3][x+1] = "tronc"
+                                mondeVu[y+3][x+2] = "tronc"
+                                mondeVu[y+4][x+1] = "tronc"
+                                mondeVu[y+4][x+2] = "tronc"
+                if mondeVu[y][x] == "terre":
+                    randomSeed(int(noise((x+mondeVuDecallage["x"]) * noiseScale,(y+mondeVuDecallage["y"]))*100000000))#un noise c'est 12 apres la virgule et on le transform en nombre entier
+                    a = random(0,100)
+                    if a <= 5:
+                        if a <= 5/3:
+                            if detectionRessources("rock",1,x,y) == True:
+                                print("1")
+                                mondeVu[y][x] = "roche"
+                                mondeVu[y+1][x] = "roche"
+                                mondeVu[y+1][x+1] = "roche"
+                        elif a <= (5/3)*2:
+                            if detectionRessources("rock",2,x,y) == True:
+                                print("2")
+                                mondeVu[y][+1] = "roche"
+                                mondeVu[y+1][x] = "roche"
+                                mondeVu[y+1][x+1] = "roche"
+                                mondeVu[y+2][x] = "roche"
+                                mondeVu[y+2][x+1] = "roche"
+                                mondeVu[y+2][x+2] = "roche"
+                        else:
+                            if detectionRessources("rock",3,x,y) == True:
+                                print("3")
+                                mondeVu[y][x+2] = "roche"
+                                mondeVu[y+1][x+1] = "roche"
+                                mondeVu[y+1][x+2] = "roche"
+                                mondeVu[y+1][x+3] = "roche"
+                                mondeVu[y+2][x] = "roche"
+                                mondeVu[y+2][x+1] = "roche"
+                                mondeVu[y+2][x+2] = "roche"
+                                mondeVu[y+2][x+3] = "roche"
+                                mondeVu[y+3][x] = "roche"
+                                mondeVu[y+3][x+1] = "roche"
+                                mondeVu[y+3][x+2] = "roche"
+                                mondeVu[y+3][x+3] = "roche"
 ##########################################################################################################################################################################
 
     
@@ -217,7 +252,43 @@ def injectBloc(blocs):#recoit une dictionnaire de forme x,y:"biome" et l'integre
         blocX = bloc[0]
         blocY = bloc[1]
         monde[blocX,blocY] = blocs[bloc]
-    
+
+def detectionRessources(type,num,xStart,yStart):
+    global mondeVu
+    materiaux = ["feuille","tronc","roche"]
+    if type == "tree":
+        if num == 1:
+            for y in range(3):  #fait une boucle pour entourer la ressource et verifie si un block se trouve dessus
+                for x in range(3):
+                    if mondeVu[y+yStart-1][x+xStart-1] in materiaux:
+                        return False
+        elif num == 2:
+            for y in range(5):
+                for x in range(5):
+                    if mondeVu[y+yStart-1][x+xStart-1] in materiaux:
+                        return False
+        else:
+            for y in range(6):
+                for x in range(6):
+                    if mondeVu[y+yStart-1][x+xStart-1] in materiaux:
+                        return False
+    elif type == "rock":
+        if num == 1:
+            for y in range(3):
+                for x in range(4):
+                    if mondeVu[y+yStart-1][x+xStart-1] in materiaux:
+                        return False
+        elif num == 2:
+            for y in range(4):
+                for x in range(5):
+                    if mondeVu[y+yStart-1][x+xStart-1] in materiaux:
+                        return False
+        else:
+            for y in range(5):
+                    for x in range(6):
+                        if mondeVu[y+yStart-1][x+xStart-1] in materiaux:
+                            return False
+    return True    
 #####################################################################################Le Hero######################################################################################"
     
 def heroMouvement():
