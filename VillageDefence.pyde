@@ -13,13 +13,13 @@ def variable():
     print("seed : ",seed)
     global zoom,mondeMargin
     zoom = 75#le nombre de block affiche en largeur
-    mondeMargin = 4#le nombre de bloc hors ecrant que l'on ajout pour facilite les calculs
+    mondeMargin = 6#le nombre de bloc hors ecrant que l'on ajout pour facilite les calculs
     global monde#contient les modifications du monde (par example pour ce souvenir de l'emplacement du village/donjon)
     monde = {}#contient un dictionnaire du type (x,y):biome, avec x et y des nombre(et non des string de text!)
     global mondeSizeX, mondeSizeY#contient le nombre de carre affichee sur l'ecrant
     mondeSizeX = zoom+1+mondeMargin*2# +1 pour que si on arondit vers le bas tout l'ecrant sera quand meme recouvert
     mondeSizeY = (height/(width/zoom))+1+mondeMargin*2#calcule pour avoir une nombre de carre proportionelle a l'ecrant(toujour avec +1)
-    global mondeVu#MondeVu contient seulement les cases vu
+    global mondeVu#MondeVu contient seulement les cases vu(+des cases en plus(margin) pour pouvoir calculer les cases vue)
     global mondeVuCouleur#pour un affichage rapide on calcule avant et on stock les couleur ici
     global mondeVuDecallage #mondeVuDecallage se souvient a quelle distance on est des coordonnee d'origine
     mondeVu = [[0 for x in range(mondeSizeX+1)] for y in range(mondeSizeY+1)]
@@ -43,8 +43,8 @@ def variable():
     
     #le hero
     global heroX,heroY,heroSize
-    heroX = (width/zoom)*mondeSizeX/2
-    heroY = (width/zoom)*((mondeSizeY-1)/2)
+    heroX = zoom/2#contient les coordonnes du hero(par rapport a l'ecrant)
+    heroY = (height/(width/zoom))/2
     heroSize = width/zoom
     global heroUp,heroDown,heroLeft,heroRight
     heroUp = False
@@ -76,7 +76,7 @@ def draw():
     drawMonde()
     heroMouvement()#mouvement et actualisation du mond et collision
     fill(0,255,255)
-    rect(heroX,heroY,heroSize,heroSize)
+    rect((width/zoom)*heroX,(width/zoom)*heroY,heroSize,heroSize)
         
 #####################################################################################Le Monde######################################################################################
     
@@ -289,11 +289,11 @@ def detectionRessources(type,num,xStart,yStart):
 #####################################################################################Le Hero######################################################################################"
     
 def heroMouvement():
-    global heroUp,heroDown,heroLeft,heroRight
-    global mondeVuDecallage
+    global heroX,heroY,heroUp,heroDown,heroLeft,heroRight
+    global mondeVuDecallage,mondeVu,mondeMargin
     heroBouge(1)
     #verification que le mouvement n'est pas en collision avec un murs
-    if collisionMurs():
+    if mondeVu[heroY+mondeMargin][heroX+mondeMargin] == "eau":
         heroBouge(-1)
         #il a une collision, donc defait le mouvement
         
@@ -316,17 +316,7 @@ def heroBouge(distance):#bouge le personnage
         
     if actualise:#de cette facon on actualise q'une foit par frame
         mondeVuActualise()
-        
-def collisionMurs():#return True is on est sur un block pas traversable(utile en cours de mouvement pour savoir si elle est possible)
-    global mondeSizeX, mondeSizeY, heroX, heroY, heroSize, mondeVu
-    for y in range(mondeSizeY):
-        for x in range(mondeSizeX):
-            if mondeVu[y][x] == "eau":
-                #on test si les carre ne se superpose pas(le plus rapid)
-                if (heroX >= (x+1)*(width/zoom) or heroX+heroSize <= x*(width/zoom) or heroY >= (y+1)*(width/zoom) or heroY+heroSize <= y*(width/zoom)) == False :#test des 4 situation de non superposition
-                    return True
-    return False
-        
+
 def keyPressed():
     #detection du clavier pour le systeme de mouvement pour le personage
     global heroUp,heroDown,heroLeft,heroRight
