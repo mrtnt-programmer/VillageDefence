@@ -1,5 +1,10 @@
+
 ################################################################################Les Variables##############################################################################
 def variable():
+    global ecrantActuel
+    #META (qui permette de savoir des information hors du jeu)
+    ecrantActuel = "jeu"#peux etre "jeu","bigmap"
+    
     #qualite de vie
     global keyType
     keyType = "francais" # peux etre "english" ou "francais" pour les claviers different
@@ -12,7 +17,7 @@ def variable():
     noiseDetail(4,0.57)
     print("seed : ",seed)
     global zoom,mondeMargin
-    zoom = 75#le nombre de block affiche en largeur
+    zoom = 75#le nombre de bloc affiche en largeur
     mondeMargin = 6#le nombre de bloc hors ecrant que l'on ajout pour facilite les calculs
     global monde#contient les modifications du monde (par example pour ce souvenir de l'emplacement du village/donjon)
     monde = {}#contient un dictionnaire du type (x,y):biome, avec x et y des nombre(et non des string de text!)
@@ -53,9 +58,17 @@ def variable():
     heroRight = False
     global heroMouvementKeys
     if keyType == "english":
-        heroMouvementKeys = {"haut":"z","bas":"s","gauche":"q","droit":"d","zoomIn":"+","zoomOut":"-"}
+        heroMouvementKeys = {"haut":"z","bas":"s","gauche":"q","droit":"d","bigmap":"m"}
     elif keyType == "francais":
-        heroMouvementKeys = {"haut":UP,"bas":DOWN,"gauche":LEFT,"droit":RIGHT,"zoomIn":"+","zoomOut":"-"}
+        heroMouvementKeys = {"haut":UP,"bas":DOWN,"gauche":LEFT,"droit":RIGHT,"bigmap":"m"}
+    
+    #les outil
+    #bigmap(qui permette de voir une plus grand partie de la map)
+    global bigmapZoom
+    global bigmapSizeX,bigmapSizeY
+    bigmapZoom = (width/4)+1 #le nombre de bloc a afficher (on mette une bigmap avec des carres de 4pixel de largeur)
+    bigmapSizeX = bigmapZoom
+    bigmapSizeY = height/(width/bigmapZoom)
         
 ##################################################################################La boucle principale#############################################################################
 
@@ -72,12 +85,16 @@ def setup():
         
 def draw():
     #print(frameRate)
-    global heroX,heroY,heroSize
-    drawMonde()
-    heroMouvement()#mouvement et actualisation du mond et collision
-    fill(0,255,255)
-    rect((width/zoom)*heroX,(width/zoom)*heroY,heroSize,heroSize)
-        
+    global ecrantActuel
+    if ecrantActuel == "jeu":
+        global heroX,heroY,heroSize
+        drawMonde()
+        heroMouvement()#mouvement et actualisation du mond et collision
+        fill(0,255,255)
+        rect((width/zoom)*heroX,(width/zoom)*heroY,heroSize,heroSize)
+    elif ecrantActuel == "bigmap":
+        drawBigmap()
+            
 #####################################################################################Le Monde######################################################################################
     
 def drawMonde():
@@ -198,36 +215,7 @@ def mondeVuActualise():#remet a jour le mondeVu(lors d'un mouvement seulement) ,
                 if mondeVu[y][x] == biome:
                     mondeVuCouleur[y][x] = biomeCouleur[biome]
                     
-def TrouveBiome(X,Y):#a partir de coordonne x,y on peux donne le biome du bloc
-    global noiseScale
-    #on trouve la valeur entre 1 et 0 avec la fonction noise(), cette valeur est la meme si le seed et les coordonnes sont les meme
-    blocNoise = noise(X * noiseScale,Y * noiseScale)
-    blocBiome = "noir"#pour debug
-    #on convertie la valeur en nom de dessin(du type 'montagne' ou 'lac')
-    if blocNoise < 0.35:
-        blocBiome = "eau"
-    elif blocNoise < 0.45:
-        blocBiome = "herbeClair"
-    elif blocNoise < 0.6:
-        blocBiome = "herbeFonce"
-    elif blocNoise < 0.7:
-        blocBiome = "terre"
-    elif blocNoise < 0.8:
-        blocBiome = "montagne"
-    else :#mondeVu[y][x] < 0.9
-        blocBiome = "hautMontagne";
-    return blocBiome
 
-def TrouveRandomPourcentage(X,Y,Pourcentage):#a partir de coordonne x,y et d'un pourcentage, retourn True ou False , utile pour le placement des ressources
-    global noiseScale
-    #noiseDetail(4,0.57)
-    #on trouve la valeur entre 1 et 0 avec la fonction noise(), cette valeur est la meme si le seed et les coordonnes sont les meme
-    blocNoise = noise(X * noiseScale,Y * noiseScale)
-    randomSeed(int(blocNoise*10000000))#un noise semble avoir 12 nombre apres la virgule donc il faut le transformer en nombre entier(un seed doit etre entier)
-    a = random(0,100)
-    if a < Pourcentage:#test du pourcentage
-        return True
-    return False
 
 def mondeInitialiser():#creation des construction et on mette leur bloc dans "monde", une seul foit aux debut
     makeVillage(mondeVuDecallage["x"]-10,mondeVuDecallage["y"]-10,mondeVuDecallage["x"]+10,mondeVuDecallage["y"]+10)
@@ -316,11 +304,51 @@ def heroBouge(distance):#bouge le personnage
         
     if actualise:#de cette facon on actualise q'une foit par frame
         mondeVuActualise()
+        
+########################################################################################bigmap####################################################################################""
+def drawBigmap():
+    global mondeVu,mondeVuCouleur
+    global biomeCouleur    
+    global bigmapZoom 
+    global bigmapSizeX,bigmapSizeY
+    #coloriage du carre selon sont type dans le monde        
+    for y in range(-bigmapSizeY/2,bigmapSizeY/2):
+        for x in range(-bigmapSizeX/2,bigmapSizeX/2):
+            #dessine le carre
+            fill(mondeVuCouleur[y][x][0],mondeVuCouleur[y][x][1],mondeVuCouleur[y][x][2])
+            blocWidth = ceil(float(width)/float(bigmapZoom))#on aroundit la valeur vers le haut avec ciel() pour etre sur que l'affichage prendra tout l'ecrant(ou plus)
+            rect(blocWidth*(x+bigmapSizeX/2),blocWidth*(y+bigmapSizeY/2),blocWidth,blocWidth)
+    
+def mondeVuActualiseBigmap():#fait une seul foit pour cree les bloc de la bigmap
+    global mondeVu,mondeVuDecallage
+    global mondeVuDecallage
+    global mondeVuCouleur,biomeCouleur
+    global bigmapZoom
+    global bigmapSizeX,bigmapSizeY
+    resizeMonde(bigmapSizeX,bigmapSizeY)
+    for y in range(-bigmapSizeY/2,bigmapSizeY/2):
+        for x in range(-bigmapSizeX/2,bigmapSizeX/2):
+            mondeVu[y][x] = TrouveBiome(x+mondeVuDecallage["x"],y+mondeVuDecallage["y"])#le probleme avec cette ligne c'est quelle lag trop
+        
+    for y in range(-bigmapSizeY/2,bigmapSizeY/2):
+        for x in range(-bigmapSizeX/2,bigmapSizeX/2):
+            #d'abord on regard pour les modification dans "monde"
+            for biome in biomeCouleur.keys():
+                if mondeVu[y][x] == biome:
+                    mondeVuCouleur[y][x] = biomeCouleur[biome]
+
+def enleveBigmap():
+    global mondeSizeX, mondeSizeY
+    resizeMonde(mondeSizeX,mondeSizeY)
+    mondeVuActualise()
+                
+########################################################################################clavier####################################################################################""
 
 def keyPressed():
     #detection du clavier pour le systeme de mouvement pour le personage
     global heroUp,heroDown,heroLeft,heroRight
     global heroMouvementKeys
+    global ecrantActuel
     if(keyCode == heroMouvementKeys["haut"] or key == heroMouvementKeys["haut"] ):
         heroUp = True
     if(keyCode == heroMouvementKeys["bas"] or key == heroMouvementKeys["bas"] ):
@@ -329,6 +357,13 @@ def keyPressed():
         heroLeft = True
     if(keyCode == heroMouvementKeys["droit"] or key == heroMouvementKeys["droit"] ):
         heroRight = True
+    if(keyCode == heroMouvementKeys["bigmap"] or key == heroMouvementKeys["bigmap"] ):
+        if ecrantActuel == "bigmap":#on revient au jeu  si on affiche le bigmap
+            ecrantActuel = "jeu"
+            enleveBigmap();
+        elif ecrantActuel == "jeu":#si on joue on met le bigmap
+            ecrantActuel = "bigmap"
+            mondeVuActualiseBigmap();
         
 def keyReleased():
     global heroUp,heroDown,heroLeft,heroRight
@@ -341,3 +376,40 @@ def keyReleased():
         heroLeft = False
     if(keyCode == heroMouvementKeys["droit"] or key == heroMouvementKeys["droit"] ):
         heroRight = False
+#########################################################################outil######################################################################################################
+
+def resizeMonde(taileX,taileY):#on redimention le mond
+    global mondeVu,mondeVuCouleur
+    mondeVu = [[0 for x in range(taileX)] for y in range(taileY)]
+    mondeVuCouleur = [[0 for x in range(taileX)] for y in range(taileY)]
+
+def TrouveBiome(X,Y):#a partir de coordonne x,y on peux donne le biome du bloc
+    global noiseScale
+    #on trouve la valeur entre 1 et 0 avec la fonction noise(), cette valeur est la meme si le seed et les coordonnes sont les meme
+    blocNoise = noise(X * noiseScale,Y * noiseScale)
+    blocBiome = "noir"#pour debug
+    #on convertie la valeur en nom de dessin(du type 'montagne' ou 'lac')
+    if blocNoise < 0.35:
+        blocBiome = "eau"
+    elif blocNoise < 0.45:
+        blocBiome = "herbeClair"
+    elif blocNoise < 0.6:
+        blocBiome = "herbeFonce"
+    elif blocNoise < 0.7:
+        blocBiome = "terre"
+    elif blocNoise < 0.8:
+        blocBiome = "montagne"
+    else :#mondeVu[y][x] < 0.9
+        blocBiome = "hautMontagne";
+    return blocBiome
+
+def TrouveRandomPourcentage(X,Y,Pourcentage):#a partir de coordonne x,y et d'un pourcentage, retourn True ou False , utile pour le placement des ressources
+    global noiseScale
+    #noiseDetail(4,0.57)
+    #on trouve la valeur entre 1 et 0 avec la fonction noise(), cette valeur est la meme si le seed et les coordonnes sont les meme
+    blocNoise = noise(X * noiseScale,Y * noiseScale)
+    randomSeed(int(blocNoise*10000000))#un noise semble avoir 12 nombre apres la virgule donc il faut le transformer en nombre entier(un seed doit etre entier)
+    a = random(0,100)
+    if a < Pourcentage:#test du pourcentage
+        return True
+    return False
