@@ -1,24 +1,26 @@
-
 ################################################################################Les Variables##############################################################################
 def variable():
     global ecrantActuel
-    #META (qui permette de savoir des information hors du jeu)
-    ecrantActuel = "jeu"#peux etre "jeu","bigmap"
+    ##META (qui permette de savoir des information hors du jeu et sure le jeu)
+    ecrantActuel = "menu"#peux etre "jeu","bigmap","menu","editeur"
     
-    #qualite de vie
+    ##qualite de vie
     global keyType
     keyType = "francais" # peux etre "english" ou "francais" pour les claviers different
     
-    #le monde
+    ##le monde
+    #variable pour le noise()
     global seed,noiseScale#on utilise ce nombre pour avoir un hasard sous control(c'est a dire ,meme seed = meme resultat noise), utiliser pour noise() et random()
     seed = int(random(0,1000000))
     noiseScale = 0.01
     noiseSeed(seed)
     noiseDetail(4,0.57)
     print("seed : ",seed)
+    
+    #variable pour les dimentions du mond
     global zoom,mondeMargin
-    zoom = 75#le nombre de bloc affiche en largeur
-    mondeMargin = 6#le nombre de bloc hors ecrant que l'on ajout pour facilite les calculs
+    zoom = 100#le nombre de bloc affiche en largeur
+    mondeMargin = 15#le nombre de bloc hors ecrant que l'on ajout pour facilite les calculs
     global monde#contient les modifications du monde (par example pour ce souvenir de l'emplacement du village/donjon)
     monde = {}#contient un dictionnaire du type (x,y):biome, avec x et y des nombre(et non des string de text!)
     global mondeSizeX, mondeSizeY#contient le nombre de carre affichee sur l'ecrant
@@ -45,6 +47,10 @@ def variable():
         "feuille":[44,76,60],
         "roche":[126,131,127]
     }
+    global coorVillage,villageWidth,villageHeight,coorDonjon
+    coorVillage = {"x":mondeVuDecallage["x"] + mondeSizeX /2,"y":mondeVuDecallage["y"]+mondeSizeX/2}#on centre le village
+    villageWidth = 31
+    villageHeight = 31    
     
     #le hero
     global heroX,heroY,heroSize
@@ -69,7 +75,7 @@ def variable():
     bigmapZoom = (width/4)+1 #le nombre de bloc a afficher (on mette une bigmap avec des carres de 4pixel de largeur)
     bigmapSizeX = bigmapZoom
     bigmapSizeY = height/(width/bigmapZoom)
-        
+    
 ##################################################################################La boucle principale#############################################################################
 
 def setup():
@@ -80,12 +86,12 @@ def setup():
     textSize(40)
     text("loading",width/2,height/2)
     noStroke()
-    mondeInitialiser()
-    mondeVuActualise()
-        
+
 def draw():
-    #print(frameRate)
+    print(frameRate)
     global ecrantActuel
+    if ecrantActuel == "menu":
+        drawMenu()
     if ecrantActuel == "jeu":
         global heroX,heroY,heroSize
         drawMonde()
@@ -94,20 +100,50 @@ def draw():
         rect((width/zoom)*heroX,(width/zoom)*heroY,heroSize,heroSize)
     elif ecrantActuel == "bigmap":
         drawBigmap()
-            
-#####################################################################################Le Monde######################################################################################
+
+#####################################################################################Le menu######################################################################################
+def drawMenu():
+    background(0)
+    #nom du jeu 
+    background(200)
+    fill(225,0,0)
+    textAlign(CENTER, CENTER);
+    textSize(width/8)
+    text("Village Defence",width/2,height/5)  
+    boutonMenu(width/4,height*3/4,width/8,height/12,"Jouer","jeu")
     
+def boutonMenu(buttonX,buttonY,buttonWidth,buttonHeight,Text,prochainEcrant):   
+    global ecrantActuel
+    #arriere plan
+    rect(buttonX,buttonY,buttonWidth,buttonHeight)
+    #
+    fill(0)
+    textAlign(CENTER,CENTER);
+    textSize(width/24)
+    text(Text,buttonX+buttonWidth/2,buttonY+buttonHeight/2)
+    #si on appuye sur le bouton on commance le jeu
+    if(mouseX>buttonX and mouseX<buttonX+buttonWidth and mouseY>buttonY and mouseY<buttonY+buttonHeight and mousePressed):
+        if prochainEcrant == "jeu":
+            mondeInitialiser()
+            ecrantActuel = "jeu"
+                    
+#####################################################################################Le Monde######################################################################################
+
+
 def drawMonde():
     global mondeVu,mondeVuCouleur
     global biomeCouleur
     global zoom,mondeMargin
     global mondeSizeX, mondeSizeY
+    global creatures,creatureImage
     #coloriage du carre selon sont type dans le monde
     for y in range(mondeMargin,mondeSizeY-mondeMargin):#on affiche les pixels que le hero voit
         for x in range(mondeMargin,mondeSizeX-mondeMargin): 
             #dessine le carre
             fill(mondeVuCouleur[y][x][0],mondeVuCouleur[y][x][1],mondeVuCouleur[y][x][2])
-            rect((width/zoom)*(x-mondeMargin),(width/zoom)*(y-mondeMargin),width/zoom,width/zoom)
+            blocWidth = ceil(float(width)/float(zoom))
+            rect(blocWidth*(x-mondeMargin),blocWidth*(y-mondeMargin),blocWidth,blocWidth)
+        
 
 def mondeVuActualise():#remet a jour le mondeVu(lors d'un mouvement seulement) , cette fonction trouve les carres a afficher et les stocke dans la list mondeVu,ainsi que precalculer les couleur
     global mondeVu,mondeVuDecallage
@@ -218,7 +254,9 @@ def mondeVuActualise():#remet a jour le mondeVu(lors d'un mouvement seulement) ,
 
 
 def mondeInitialiser():#creation des construction et on mette leur bloc dans "monde", une seul foit aux debut
-    makeVillage(mondeVuDecallage["x"]-10,mondeVuDecallage["y"]-10,mondeVuDecallage["x"]+10,mondeVuDecallage["y"]+10)
+    global coorVillage,villageWidth,villageHeight,coorDonjon
+    makeVillage(coorVillage["x"]-villageWidth/2,coorVillage["y"]-villageHeight/2,coorVillage["x"]+villageWidth/2,coorVillage["y"]+villageHeight/2)
+    mondeVuActualise()
                     
 def makeVillage(startX,startY,endX,endY):#on lui donne les corrdonne(haut gauche)et(bas droit) du carre #pour l'instan cette fonction n'est que pour replacer des coordonne en rouge
     villageBlocs = {}#contient tout les blocs du village
@@ -229,18 +267,12 @@ def makeVillage(startX,startY,endX,endY):#on lui donne les corrdonne(haut gauche
                 villageBlocs[x,y] = "villageMur"
              if(y == startY or y == endY):
                 villageBlocs[x,y] = "villageMur" 
-    injectBloc(villageBlocs)
-
-def injectBloc(blocs):#recoit une dictionnaire de forme x,y:"biome" et l'integre dans l'affichage du monde
-    global monde
-    for bloc in blocs.keys():
-        blocX = bloc[0]
-        blocY = bloc[1]
-        monde[blocX,blocY] = blocs[bloc]
+    injectBlocs(villageBlocs)
 
 def detectionRessources(type,num,xStart,yStart):
     global mondeVu
     materiaux = ["feuille","tronc","roche"]
+    """ cette partie cree des beug avec l'affichage des ressources, a revoir
     if type == "tree":
         if num == 1:
             for y in range(3):  #fait une boucle pour entourer la ressource et verifie si un block se trouve dessus
@@ -273,6 +305,7 @@ def detectionRessources(type,num,xStart,yStart):
                     for x in range(6):
                         if mondeVu[y+yStart-1][x+xStart-1] in materiaux:
                             return False
+    """
     return True    
 #####################################################################################Le Hero######################################################################################"
     
@@ -341,8 +374,8 @@ def enleveBigmap():
     global mondeSizeX, mondeSizeY
     resizeMonde(mondeSizeX,mondeSizeY)
     mondeVuActualise()
-                
-########################################################################################clavier####################################################################################""
+
+########################################################################################clavier######################################################################################
 
 def keyPressed():
     #detection du clavier pour le systeme de mouvement pour le personage
@@ -376,6 +409,7 @@ def keyReleased():
         heroLeft = False
     if(keyCode == heroMouvementKeys["droit"] or key == heroMouvementKeys["droit"] ):
         heroRight = False
+        
 #########################################################################outil######################################################################################################
 
 def resizeMonde(taileX,taileY):#on redimention le mond
@@ -413,3 +447,10 @@ def TrouveRandomPourcentage(X,Y,Pourcentage):#a partir de coordonne x,y et d'un 
     if a < Pourcentage:#test du pourcentage
         return True
     return False
+
+def injectBlocs(blocs):#recoit une dictionnaire de forme x,y:"biome" et l'integre dans l'affichage du monde
+    global monde
+    for bloc in blocs.keys():
+        blocX = bloc[0]
+        blocY = bloc[1]
+        monde[blocX,blocY] = blocs[bloc]
