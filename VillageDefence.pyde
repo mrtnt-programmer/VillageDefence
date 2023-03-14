@@ -76,6 +76,13 @@ def variable():
     bigmapSizeX = bigmapZoom
     bigmapSizeY = height/(width/bigmapZoom)
     
+    #editeur
+    global editeurVariables
+    #variables pour l'editeur, dans un dictionnaire pour qu'on peux cree des variables
+    editeurVariables = {"zoom":40,
+                        "mondesizeX":0,#certain variable vont etre definit dans editeurInitialiser()
+                        "mondesizeY":0}
+    
 ##################################################################################La boucle principale#############################################################################
 
 def setup():
@@ -88,11 +95,11 @@ def setup():
     noStroke()
 
 def draw():
-    print(frameRate)
+    #print(frameRate)
     global ecrantActuel
     if ecrantActuel == "menu":
         drawMenu()
-    if ecrantActuel == "jeu":
+    elif ecrantActuel == "jeu":
         global heroX,heroY,heroSize
         drawMonde()
         heroMouvement()#mouvement et actualisation du mond et collision
@@ -100,21 +107,24 @@ def draw():
         rect((width/zoom)*heroX,(width/zoom)*heroY,heroSize,heroSize)
     elif ecrantActuel == "bigmap":
         drawBigmap()
+    elif ecrantActuel == "editeur":
+        drawEditeur()
+        
 
 #####################################################################################Le menu######################################################################################
 def drawMenu():
-    background(0)
-    #nom du jeu 
     background(200)
     fill(225,0,0)
     textAlign(CENTER, CENTER);
     textSize(width/8)
     text("Village Defence",width/2,height/5)  
     boutonMenu(width/4,height*3/4,width/8,height/12,"Jouer","jeu")
+    boutonMenu(width*3/4,height*3/4,width/8,height/12,"cree","editeur")
     
 def boutonMenu(buttonX,buttonY,buttonWidth,buttonHeight,Text,prochainEcrant):   
     global ecrantActuel
     #arriere plan
+    fill(225,0,0)
     rect(buttonX,buttonY,buttonWidth,buttonHeight)
     #
     fill(0)
@@ -126,7 +136,9 @@ def boutonMenu(buttonX,buttonY,buttonWidth,buttonHeight,Text,prochainEcrant):
         if prochainEcrant == "jeu":
             mondeInitialiser()
             ecrantActuel = "jeu"
-                    
+        if prochainEcrant == "editeur":
+            editeurInitialiser()
+            ecrantActuel = "editeur"                    
 #####################################################################################Le Monde######################################################################################
 
 
@@ -374,6 +386,48 @@ def enleveBigmap():
     global mondeSizeX, mondeSizeY
     resizeMonde(mondeSizeX,mondeSizeY)
     mondeVuActualise()
+
+########################################################################################editeur######################################################################################
+def editeurInitialiser():
+    global editeurVariables
+    mondeVuActualise()
+    
+    
+def drawEditeur():
+    global editeurVariables
+    drawMonde()
+    #bar de modification de variable
+    barX = width*7/8 
+    barY = 0
+    barW = width/8
+    barH = height
+    fill(200)
+    rect(barX,barY,barW,barH)
+    #on cree des slider pour pouvoir changer des variable en live
+    editeurVariables["zoom"] = editeurSlider(barX+barW/8,barY+barH*2/18,barW*6/8,barH/18,0,100,1,editeurVariables["zoom"],"zoom")
+    
+def editeurSlider(x,y,w,h,minValue,Maxvalue,interval,initialValue,name):
+    #background
+    fill(160)
+    rect(x,y,w,h)
+    #text
+    fill(0)
+    textSize(14)
+    text(name,x,y,w*4/10,h)
+    #detection et calcule du slider
+    scrollDebut = w*4/10
+    scrollFin = w*9/10
+    valeur = initialValue
+    if(mouseX>x+scrollDebut and mouseX<x+w and mouseY>y and mouseY<y+h and mousePressed):
+        valeur = minValue+(mouseX-(x+scrollDebut))*(Maxvalue-minValue)/(w-scrollDebut)#on calcul le pourcentage de ou on est sur le slider(pas forcement sur 100, mais par Maxvalue)
+    text(str(valeur),x,y+100,w*4/10,h)
+    #affichage du slider
+    fill(0)
+    strokeWeight(12)
+    line(x+scrollDebut,y+w/2,x+scrollFin,y+w/2)
+    line(x+valeur,y+w/4,x+valeur,y+w*3/4)
+    return valeur
+    
 
 ########################################################################################clavier######################################################################################
 
