@@ -19,13 +19,13 @@ def variable():
     
     #variable pour les dimentions du mond
     global zoom,mondeMargin
-    zoom = 100#le nombre de bloc affiche en largeur
-    mondeMargin = 15#le nombre de bloc hors ecrant que l'on ajout pour facilite les calculs
+    zoom = 80#1366#le nombre de bloc affiche en largeur
+    mondeMargin = 6#le nombre de bloc hors ecrant que l'on ajout pour facilite les calculs, doit etre >1 pour les mouvements et >taille des ressources
     global monde#contient les modifications du monde (par example pour ce souvenir de l'emplacement du village/donjon)
     monde = {}#contient un dictionnaire du type (x,y):biome, avec x et y des nombre(et non des string de text!)
     global mondeSizeX, mondeSizeY#contient le nombre de carre affichee sur l'ecrant
-    mondeSizeX = zoom+1+mondeMargin*2# +1 pour que si on arondit vers le bas tout l'ecrant sera quand meme recouvert
-    mondeSizeY = (height/(width/zoom))+1+mondeMargin*2#calcule pour avoir une nombre de carre proportionelle a l'ecrant(toujour avec +1)
+    mondeSizeX = zoom+mondeMargin*2# +1 pour que si on arondit vers le bas tout l'ecrant sera quand meme recouvert
+    mondeSizeY = (height/(width/zoom))+mondeMargin*2#calcule pour avoir une nombre de carre proportionelle a l'ecrant(toujour avec +1)
     global mondeVu#MondeVu contient seulement les cases vu(+des cases en plus(margin) pour pouvoir calculer les cases vue)
     global mondeVuCouleur#pour un affichage rapide on calcule avant et on stock les couleur ici
     global mondeVuDecallage #mondeVuDecallage se souvient a quelle distance on est des coordonnee d'origine
@@ -54,7 +54,7 @@ def variable():
     
     #le hero
     global heroX,heroY,heroSize
-    heroX = zoom/2#contient les coordonnes du hero(par rapport a l'ecrant)
+    heroX = zoom/2#contient les coordonnes du hero(par rapport a mondeVu)
     heroY = (height/(width/zoom))/2
     heroSize = width/zoom
     global heroUp,heroDown,heroLeft,heroRight
@@ -104,7 +104,9 @@ def draw():
         drawMonde()
         heroMouvement()#mouvement et actualisation du mond et collision
         fill(0,255,255)
-        rect((width/zoom)*heroX,(width/zoom)*heroY,heroSize,heroSize)
+        blocWidth = ceil(float(width)/float(zoom))
+        rect(blocWidth*heroX,blocWidth*heroY,heroSize,heroSize)
+        text(frameRate,100,100)
     elif ecrantActuel == "bigmap":
         drawBigmap()
     elif ecrantActuel == "editeur":
@@ -141,7 +143,6 @@ def boutonMenu(buttonX,buttonY,buttonWidth,buttonHeight,Text,prochainEcrant):
             ecrantActuel = "editeur"                    
 #####################################################################################Le Monde######################################################################################
 
-
 def drawMonde():
     global mondeVu,mondeVuCouleur
     global biomeCouleur
@@ -157,40 +158,96 @@ def drawMonde():
             rect(blocWidth*(x-mondeMargin),blocWidth*(y-mondeMargin),blocWidth,blocWidth)
         
 
-def mondeVuActualise():#remet a jour le mondeVu(lors d'un mouvement seulement) , cette fonction trouve les carres a afficher et les stocke dans la list mondeVu,ainsi que precalculer les couleur
+def mondeVuActualise(mouvements):#remet a jour le mondeVu(lors d'un mouvement seulement) ,cette fonction trouve les carres a afficher et les stocke dans la list mondeVu,ainsi que precalculer les couleur
+    #mouvements est de forme {"x":0,"y":0}
     global mondeVu,mondeVuDecallage
     global heroCameraX,heroCameraY
     global zoom
-    global mondeSizeX, mondeSizeY
+    global mondeSizeX, mondeSizeY,mondeMargin
     global mondeVuDecallage
     global mondeVuCouleur,monde,biomeCouleur
     global seed,noiseScale
+    mondeVuDecallage["x"] += mouvements["x"]
+    mondeVuDecallage["y"] += mouvements["y"]
 
-    for y in range(mondeSizeY):
-        for x in range(mondeSizeX):
+    #on vas seulement recalculer les nouveaus pixels et les margins(pour afficher les ressources correctement)
+    newMondeVu = [[0 for x in range(mondeSizeX+1)] for y in range(mondeSizeY+1)]
+    #les Case vu ne sont pas a recalculer donc on les stock dans la memoire pour les decaller
+    for y in range(mondeMargin,mondeSizeY-mondeMargin):
+        for x in range(mondeMargin,mondeSizeX-mondeMargin):
+            newMondeVu[y][x] = mondeVu[y+mouvements["y"]][x+mouvements["x"]]
+            
+                                                                                                                    
+    for y in range(mondeMargin,mondeSizeY-mondeMargin):
+        for x in range(mondeMargin,mondeSizeX-mondeMargin):
+            if newMondeVu[y][x] != 0:
+                mondeVu[y][x] = newMondeVu[y][x]
+    
+    #mantenant pour les calculs des margins
+    creeMonde(0,0,mondeSizeX,mondeMargin)#top
+    creeMonde(0,mondeSizeY-mondeMargin,mondeSizeX,mondeMargin)#bottom
+    creeMonde(0,0,mondeMargin,mondeSizeY)#left
+    creeMonde(mondeSizeX-mondeMargin,0,mondeMargin,mondeSizeY)#right
+
+    #creeMonde(0,0,mondeSizeX,mondeSizeY)#la veille facon
+    
+    #on calcule les couleur pour l'affichage
+    creeMondeCouleur(mondeMargin,mondeMargin,mondeSizeX-mondeMargin,mondeSizeY-mondeMargin)
+    
+    
+def creeMonde(newMondeX,newMondeY,newMondeW,newMondeH):#calcul et dessin les bloc contenu dans ce rectangle
+    global mondeVu,mondeVuDecallage
+    global heroCameraX,heroCameraY
+    global zoom
+    global mondeSizeX, mondeSizeY#rempl
+    global mondeVuDecallage
+    global mondeVuCouleur,monde,biomeCouleur
+    global seed,noiseScale
+    
+    for y in range(newMondeY,newMondeH+newMondeY):
+        for x in range(newMondeX,newMondeW+newMondeX):
             mondeVu[y][x] = TrouveBiome(x+mondeVuDecallage["x"],y+mondeVuDecallage["y"])#le probleme avec cette ligne c'est quelle lag trop
                 
     #modification avec les bloc en memoire dans "monde"
     for coor in monde.keys():#pour chaque modification
         #on verifie d'abord si il est a etre afficher sur l'ecran
-        if coor[0] <= mondeVuDecallage["x"]+mondeSizeX and coor[0] >= mondeVuDecallage["x"]:
-            if coor[1] <= mondeVuDecallage["y"]+mondeSizeY and coor[1] >= mondeVuDecallage["y"]:
+        if coor[0] <= mondeVuDecallage["x"]+newMondeW and coor[0] >= mondeVuDecallage["x"]:
+            if coor[1] <= mondeVuDecallage["y"]+newMondeH and coor[1] >= mondeVuDecallage["y"]:
                 #modification
                 mondeVu[coor[1]-mondeVuDecallage["y"]][coor[0]-mondeVuDecallage["x"]] = monde[coor]
-    ##########################################################################################################################################################################
-    ##########################################################################################################################################################################
-    ##########################################################################################################################################################################
-    ########################################################################a travailler#######################################################################
-    ##########################################################################################################################################################################
-    ##########################################################################################################################################################################
+    
     #creation des ressource
-    for y in range(mondeSizeY):
-        for x in range(mondeSizeX):
+    
+    """
+    #la Distribution des ressources de forme : "biome":[("ressourceCouleur",pourcentage),...]
+    ressourceDistribution = {"herbeFonce":[("arbre1",2)]}
+    
+    #l'affichage des ressources de forme "ressource";[(x,y,biomeAAficher),...]
+    ressourceCouleur = {"arbre1":[(0,0,"feuille"),(1,0,"feuille")]}
+    
+    print('starting')
+    for y in range(newMondeY,newMondeH+newMondeY):
+        for x in range(newMondeX,newMondeW+newMondeX):
+            #pour chaque type de biome
+            for biome in ressourceDistribution.keys:
+                #pour chaque ressources
+                for ressource in ressourceDistribution[biome]:
+                    #pour chaque couleur
+                    for couleur in ressourceCouleur[ressource]:
+                        #si possible(si les coordonnees sont compris dans le terrain modifier)
+                        if x+couleur[0] > newMondeX and x+couleur[0] < newMondeW+newMondeX and y+couleur[1] > newMondeY and y+couleur[1] < newMondeH+newMondeY:
+                            mondeVu[y+couleur[0]][x+couleur[0]] = couleur[3]
+                            #on affiche
+    
+                    
+    """
+    for y in range(newMondeY,newMondeH+newMondeY):
+        for x in range(newMondeX,newMondeW+newMondeX):
             if x + 6 <= len(mondeVu[0]) and y + 6 <= len(mondeVu) and x - 1 >= 0 and y - 1 >= 0:  #si on ne depasse pas mondeVu
                 if mondeVu[y][x] == "herbeFonce":
                     randomSeed(int(noise((x+mondeVuDecallage["x"]) * noiseScale,(y+mondeVuDecallage["y"]))*100000000))#un noise c'est 12 apres la virgule et on le transform en nombre entier
                     a = random(0,100)
-                    if a <= 10:#le pourcentage de case qui von contenir la resource
+                    if a <= 8:#le pourcentage de case qui von contenir la resource
                         if a <= 10/3:
                             if detectionRessources("tree",1,x,y) == True:  #il y a maitenant 3 types d'arbre
                                 mondeVu[y][x] = "feuille"
@@ -252,23 +309,27 @@ def mondeVuActualise():#remet a jour le mondeVu(lors d'un mouvement seulement) ,
                                 mondeVu[y+3][x+1] = "roche"
                                 mondeVu[y+3][x+2] = "roche"
                                 mondeVu[y+3][x+3] = "roche"
-##########################################################################################################################################################################
-
     
     #on calcule a l'avance les couleurs
-    for y in range(mondeSizeY):
-        for x in range(mondeSizeX): 
-            #d'abord on regard pour les modification dans "monde"
+    creeMondeCouleur(newMondeX,newMondeY,newMondeW,newMondeH)    
+
+def creeMondeCouleur(newMondeX,newMondeY,newMondeW,newMondeH):
+    global mondeVuCouleur,biomeCouleur
+    for y in range(newMondeY,newMondeH+newMondeY):
+        for x in range(newMondeX,newMondeW+newMondeX):
+            #on cherche le biome correspondant et on memorise la couleur
             for biome in biomeCouleur.keys():
                 if mondeVu[y][x] == biome:
                     mondeVuCouleur[y][x] = biomeCouleur[biome]
-                    
+    
+
 
 
 def mondeInitialiser():#creation des construction et on mette leur bloc dans "monde", une seul foit aux debut
     global coorVillage,villageWidth,villageHeight,coorDonjon
+    global mondeSizeX,mondeSizeY
     makeVillage(coorVillage["x"]-villageWidth/2,coorVillage["y"]-villageHeight/2,coorVillage["x"]+villageWidth/2,coorVillage["y"]+villageHeight/2)
-    mondeVuActualise()
+    creeMonde(0,0,mondeSizeX,mondeSizeY)
                     
 def makeVillage(startX,startY,endX,endY):#on lui donne les corrdonne(haut gauche)et(bas droit) du carre #pour l'instan cette fonction n'est que pour replacer des coordonne en rouge
     villageBlocs = {}#contient tout les blocs du village
@@ -333,22 +394,18 @@ def heroMouvement():
 def heroBouge(distance):#bouge le personnage
     global heroUp,heroDown,heroLeft,heroRight
     global mondeVuDecallage
-    actualise = False
+    actualise = {"x":0,"y":0}#les mouvements a fair
     if(heroUp == True):
-        mondeVuDecallage["y"] -= distance
-        actualise = True
+        actualise["y"] += -distance
     if(heroDown == True):
-        mondeVuDecallage["y"] += distance
-        actualise = True
+        actualise["y"] += distance
     if(heroLeft == True):
-        mondeVuDecallage["x"] -= distance
-        actualise = True
+        actualise["x"] += -distance
     if(heroRight == True):
-        mondeVuDecallage["x"] += distance
-        actualise = True
+        actualise["x"] += distance
         
-    if actualise:#de cette facon on actualise q'une foit par frame
-        mondeVuActualise()
+    if actualise["x"] != 0 or actualise["y"] != 0 :#de cette facon on actualise que lors d'un mouvement
+        mondeVuActualise(actualise)
         
 ########################################################################################bigmap####################################################################################""
 def drawBigmap():
@@ -385,13 +442,13 @@ def mondeVuActualiseBigmap():#fait une seul foit pour cree les bloc de la bigmap
 def enleveBigmap():
     global mondeSizeX, mondeSizeY
     resizeMonde(mondeSizeX,mondeSizeY)
-    mondeVuActualise()
+    creeMonde(0,0,mondeSizeX,mondeSizeY)
 
 ########################################################################################editeur######################################################################################
 def editeurInitialiser():
     global editeurVariables
-    mondeVuActualise()
-    
+    global mondeSizeX,mondeSizeY
+    creeMonde(0,0,mondeSizeX,mondeSizeY)
     
 def drawEditeur():
     global editeurVariables
@@ -403,10 +460,26 @@ def drawEditeur():
     barH = height
     fill(200)
     rect(barX,barY,barW,barH)
+    #les dimention du monde cree
+    editeurVariables["x"] = editeurTextInput(barX+barW/8,barY+barH*1/18,barW*6/8,barH/18,"10","width")
     #on cree des slider pour pouvoir changer des variable en live
     editeurVariables["zoom"] = editeurSlider(barX+barW/8,barY+barH*2/18,barW*6/8,barH/18,0,100,1,editeurVariables["zoom"],"zoom")
     
+def editeurTextInput(x,y,w,h,data,nom):
+    push()
+    #background
+    fill(160)
+    rect(x,y,w,h)
+    #text 
+    fill(0)
+    textSize(14)
+    text(nom+": "+data,x,y,w,h)
+    if mousePressed:
+        print("hum")
+    pop()
+    
 def editeurSlider(x,y,w,h,minValue,Maxvalue,interval,initialValue,name):
+    push()
     #background
     fill(160)
     rect(x,y,w,h)
@@ -418,14 +491,22 @@ def editeurSlider(x,y,w,h,minValue,Maxvalue,interval,initialValue,name):
     scrollDebut = w*4/10
     scrollFin = w*9/10
     valeur = initialValue
+    extemum = True#si on sort de la zone de slide a gauche ou a droit,on met la valeur a l'extremum corespondant
     if(mouseX>x+scrollDebut and mouseX<x+w and mouseY>y and mouseY<y+h and mousePressed):
         valeur = minValue+(mouseX-(x+scrollDebut))*(Maxvalue-minValue)/(w-scrollDebut)#on calcul le pourcentage de ou on est sur le slider(pas forcement sur 100, mais par Maxvalue)
+        extemum = True
+    if extemum and mousePressed:
+        if mouseX<x:
+            valeur = minValue
+        if mouseX>x+w:
+            valeur = Maxvalue
     text(str(valeur),x,y+100,w*4/10,h)
     #affichage du slider
-    fill(0)
-    strokeWeight(12)
-    line(x+scrollDebut,y+w/2,x+scrollFin,y+w/2)
-    line(x+valeur,y+w/4,x+valeur,y+w*3/4)
+    stroke(0)
+    strokeWeight(2)
+    line(x+scrollDebut,y+h/2,x+scrollFin,y+h/2)#ligne horizontale
+    line(x+scrollDebut+valeur,y+(h/4),x+scrollDebut+valeur,y+(h*3/4))#line verticale
+    pop()
     return valeur
     
 
